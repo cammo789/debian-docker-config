@@ -3,6 +3,19 @@ version: '3.2'
 services:
 #https://github.com/qdm12/gluetun/wiki/Mullvad
 #https://www.youtube.com/watch?v=mH7J_2JKNK0
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud
+    container_name: nextcloud
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /opt/appdata/nextcloud:/config
+      - /mnt/storage/nextcloud:/data
+    ports:
+      - 444:444
+    restart: unless-stopped
   gluetun:
     image: qmcgaw/gluetun
     cap_add:
@@ -116,7 +129,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
       - URL=cconable.com
-      - SUBDOMAINS=www,radarr,sonarr
+      - SUBDOMAINS=www,radarr,sonarr,nextcloud
       - VALIDATION=http
     volumes:
       - /home/aptalca/appdata/swag:/config
@@ -124,3 +137,4 @@ services:
       - 443:443
       - 80:80
     restart: unless-stopped
+
