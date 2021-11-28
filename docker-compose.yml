@@ -11,10 +11,26 @@ services:
       - PGID=1000
       - TZ=Europe/London
     volumes:
-      - /opt/appdata/nextcloud:/config
-      - /mnt/storage/nextcloud:/data
-    ports:
-      - 444:444
+      - /opt/appdata/nextcloud/config:/config
+      - /mnt/storage/nextcloud/data:/data
+    depends_on:
+      - mariadb
+#    ports:
+#      - 444:444
+    restart: unless-stopped
+  mariadb:
+    image: ghcr.io/linuxserver/mariadb
+    container_name: mariadb
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
+      - TZ=Europe/London
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=camuser
+      - MYSQL_PASSWORD=camscloudissosecure
+    volumes:
+      - /opt/appdata/mariadb:/config
     restart: unless-stopped
   gluetun:
     image: qmcgaw/gluetun
@@ -137,4 +153,3 @@ services:
       - 443:443
       - 80:80
     restart: unless-stopped
-
