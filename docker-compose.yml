@@ -3,6 +3,20 @@ version: '3.2'
 services:
 #https://github.com/qdm12/gluetun/wiki/Mullvad
 #https://www.youtube.com/watch?v=mH7J_2JKNK0
+  lazydocker:
+    build:
+      context: https://github.com/jesseduffield/lazydocker.git
+      args:
+        BASE_IMAGE_BUILDER: golang
+        GOARCH: amd64
+        GOARM:
+    image: lazyteam/lazydocker
+    container_name: lazydocker
+    stdin_open: true
+    tty: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/appdata/lazydocker/config:/config
   nextcloud:
     image: lscr.io/linuxserver/nextcloud
     container_name: nextcloud
@@ -15,6 +29,7 @@ services:
       - /mnt/storage/nextcloud/data:/data
     depends_on:
       - mariadb
+      - swag
 #    ports:
 #      - 444:444
     restart: unless-stopped
