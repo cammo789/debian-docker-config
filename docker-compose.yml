@@ -3,6 +3,34 @@ version: '3.2'
 services:
 #https://github.com/qdm12/gluetun/wiki/Mullvad
 #https://www.youtube.com/watch?v=mH7J_2JKNK0
+  metube:
+    image: alexta69/metube
+    container_name: metube
+    restart: unless-stopped
+    # user: "1000:1000"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    ports:
+      - "8081:8081"
+    volumes:
+      - /mnt/storage/metube/downloads:/downloads
+  calibre:
+    image: lscr.io/linuxserver/calibre
+    container_name: calibre
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      # - PASSWORD= 123654789camcalibre
+      - CLI_ARGS= #optional
+    volumes:
+      - /opt/appdata/calibre/config:/config
+      - /mnt/storage/calibre/data:/data
+    ports:
+      # - 8080:8080
+      - 8082:8082
+    restart: unless-stopped
   syncthing:
     image: lscr.io/linuxserver/syncthing
     container_name: syncthing
@@ -12,7 +40,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
     volumes:
-      - /opt/appdata/config:/config
+      - /opt/appdata/syncthing/config:/config
       - /mnt/storage/nextcloud:/nextcloud
       - /mnt/storage/misc/workout:/workout
     ports:
@@ -178,7 +206,7 @@ services:
       - PGID=1000
       - TZ=Europe/London
       - URL=cconable.com
-      - SUBDOMAINS=www,radarr,sonarr,nextcloud
+      - SUBDOMAINS=www,radarr,sonarr,nextcloud,calibre,metube
       - VALIDATION=http
     volumes:
       - /home/aptalca/appdata/swag:/config
