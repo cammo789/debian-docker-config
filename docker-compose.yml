@@ -3,6 +3,24 @@ version: '3.2'
 services:
 #https://github.com/qdm12/gluetun/wiki/Mullvad
 #https://www.youtube.com/watch?v=mH7J_2JKNK0
+  syncthing:
+    image: lscr.io/linuxserver/syncthing
+    container_name: syncthing
+    #hostname: syncthing #optional
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /opt/appdata/config:/config
+      - /mnt/storage/nextcloud:/nextcloud
+      - /mnt/storage/misc/workout:/workout
+    ports:
+      - 8384:8384
+      - 22000:22000/tcp
+      - 22000:22000/udp
+      - 21027:21027/udp
+    restart: unless-stopped
   lazydocker:
     build:
       context: https://github.com/jesseduffield/lazydocker.git
