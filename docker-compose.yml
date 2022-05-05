@@ -1,16 +1,65 @@
 ---
 version: '3.2'
 services:
-#https://github.com/qdm12/gluetun/wiki/Mullvad
-#https://www.youtube.com/watch?v=mH7J_2JKNK0
-  authelia:
-    image: authelia/authelia:4.21.0
-    container_name: authelia
-    environment:
-      - TZ=America/New_York
-    volumes:
-      - /opt/appdata/authelia/config:/config
+  broker:
+      image: redis:6.0
+      restart: unless-stopped
+      volumes:
+        - /mnt/storage/paperless/redisdata:/redisdata
+  db:
+    image: postgres:13
     restart: unless-stopped
+    volumes:
+      - /mnt/storage/paperless/pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+      - broker
+    ports:
+      - 8010:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - /mnt/storage/paperless/data:/usr/src/paperless/data
+      - /mnt/storage/paperless/media:/usr/src/paperless/media
+      - /mnt/storage/paperless/export:/usr/src/paperless/export
+      - /mnt/storage/paperless/consume:/usr/src/paperless/consume
+    env_file: /mnt/storage/paperless/docker-compose-paperless.env
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_DBHOST: db
+  # doublecommander:
+  #   image: lscr.io/linuxserver/doublecommander
+  #   container_name: doublecommander
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Europe/London
+  #   volumes:
+  #     - /appdata/doublecommander:/config
+  #     - /:/data
+  #   ports:
+  #     - 3000:3000
+  #   restart: unless-stopped
+  # authelia:
+  #   image: authelia/authelia:4.21.0
+  #   container_name: authelia
+  #   environment:
+  #     - TZ=America/New_York
+  #     - PUID=1000
+  #     - PGID=1000
+  #   volumes:
+  #     - /opt/appdata/authelia:/config
+  #   restart: unless-stopped
   metube:
     image: alexta69/metube
     container_name: metube
@@ -23,22 +72,23 @@ services:
       - "8081:8081"
     volumes:
       - /mnt/storage/metube/downloads:/downloads
-  # calibre:
-  #   image: lscr.io/linuxserver/calibre
-  #   container_name: calibre
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/London
-  #     # - PASSWORD= 123654789camcalibre
-  #     - CLI_ARGS= #optional
-  #   volumes:
-  #     - /opt/appdata/calibre/config:/config
-  #     - /mnt/storage/calibre/data:/data
-  #   ports:
-  #     # - 8080:8080
-  #     - 8082:8082
-  #   restart: unless-stopped
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web
+    container_name: calibre-web
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - DOCKER_MODS=linuxserver/calibre-web:calibre #optional
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+      # - PASSWORD= 123654789camcalibre
+      # - CLI_ARGS= #optional
+    volumes:
+      - /opt/appdata/calibre/config:/config
+      - /mnt/storage/calibre/data:/data
+    ports:
+      - 8083:8083
+    restart: unless-stopped
   syncthing:
     image: lscr.io/linuxserver/syncthing
     container_name: syncthing
@@ -57,20 +107,20 @@ services:
       - 22000:22000/udp
       - 21027:21027/udp
     restart: unless-stopped
-  lazydocker:
-    build:
-      context: https://github.com/jesseduffield/lazydocker.git
-      args:
-        BASE_IMAGE_BUILDER: golang
-        GOARCH: amd64
-        GOARM:
-    image: lazyteam/lazydocker
-    container_name: lazydocker
-    stdin_open: true
-    tty: true
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /opt/appdata/lazydocker/config:/config
+  # lazydocker:
+  #   build:
+  #     context: https://github.com/jesseduffield/lazydocker.git
+  #     args:
+  #       BASE_IMAGE_BUILDER: golang
+  #       GOARCH: amd64
+  #       GOARM:
+  #   image: lazyteam/lazydocker
+  #   container_name: lazydocker
+  #   stdin_open: true
+  #   tty: true
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - /opt/appdata/lazydocker/config:/config
 #  nextcloud:
 #    image: lscr.io/linuxserver/nextcloud
 #    container_name: nextcloud
@@ -94,13 +144,15 @@ services:
 #      - PUID=1000
 #      - PGID=1000
 #      - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
-#      - TZ=Europe/London
+#      - TZ=Europe/Londonf
 #      - MYSQL_DATABASE=nextcloud
 #      - MYSQL_USER=camuser
 #      - MYSQL_PASSWORD=camscloudissosecure
 #    volumes:
 #      - /opt/appdata/mariadb:/config
 #    restart: unless-stopped
+#https://github.com/qdm12/gluetun/wiki/Mullvad
+#https://www.youtube.com/watch?v=mH7J_2JKNK0
   gluetun:
     image: qmcgaw/gluetun
     cap_add:
@@ -113,6 +165,8 @@ services:
       - 8112:8112
       - 6881:6881
       - 6881:6881/udp
+      #specify port 8000 for testing
+      - 8000:8000
     volumes:
 #      - /yourpath:/gluetun
       - /opt/appdata/gluetun:/config
@@ -212,9 +266,9 @@ services:
       - PGID=1000 
       - TZ=Europe/London 
       - URL=cconable.com 
-      - SUBDOMAINS=www,radarr,sonarr,metube,dashboard
+      - SUBDOMAINS=www,radarr,sonarr,metube,paperless
       - VALIDATION=http 
-      - DOCKER_MODS=linuxserver/mods:swag-dashboard
+      # - DOCKER_MODS=linuxserver/mods:swag-dashboard
     volumes:
       - /home/aptalca/appdata/swag:/config
     ports:
