@@ -31,7 +31,7 @@ access_control:
   # default_policy: deny
   rules:
     - domain: "*.cconable.com"
-      policy: one_factor
+      policy: two_factor
 
 session:
   name: authelia_session
@@ -57,16 +57,10 @@ notifier:
     # Password can also be set using a secret: https://www.authelia.com/docs/configuration/secrets.html
     # For more info: https://www.authelia.com/docs/configuration/notifier/smtp.html
     password: lnldyhyrolvubogy
-    sender: admin@example.com
+    sender: cammo789@gmail.com
     host: smtp.gmail.com
     port: 587
   # smtp:
-  #   username: cammo789@gmail.com
-  #   password: qwerTYUI1qaz@WSX
-  #   # password: a_very_important_secretMaoMaoMaoMaoMaoMao
-  #   host: smtp.gmail.com
-  #   port: 587
-  #   sender: cammo789@gmail.com
   #   subject: "[Authelia] {title}"
   #   startup_check_address: test@authelia.com
   #   trusted_cert: ""
