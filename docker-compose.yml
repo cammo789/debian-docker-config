@@ -38,19 +38,6 @@ services:
     environment:
       PAPERLESS_REDIS: redis://broker:6379
       PAPERLESS_DBHOST: db
-  # doublecommander:
-  #   image: lscr.io/linuxserver/doublecommander
-  #   container_name: doublecommander
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/London
-  #   volumes:
-  #     - /appdata/doublecommander:/config
-  #     - /:/data
-  #   ports:
-  #     - 3000:3000
-  #   restart: unless-stopped
   authelia:
     image: authelia/authelia:4.21.0
     container_name: authelia
@@ -108,53 +95,9 @@ services:
       - 22000:22000/udp
       - 21027:21027/udp
     restart: unless-stopped
-  # lazydocker:
-  #   build:
-  #     context: https://github.com/jesseduffield/lazydocker.git
-  #     args:
-  #       BASE_IMAGE_BUILDER: golang
-  #       GOARCH: amd64
-  #       GOARM:
-  #   image: lazyteam/lazydocker
-  #   container_name: lazydocker
-  #   stdin_open: true
-  #   tty: true
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     - /opt/appdata/lazydocker/config:/config
-#  nextcloud:
-#    image: lscr.io/linuxserver/nextcloud
-#    container_name: nextcloud
-#    environment:
-#      - PUID=1000
-#      - PGID=1000
-#      - TZ=Europe/London
-#    volumes:
-#      - /opt/appdata/nextcloud/config:/config
-#      - /mnt/storage/nextcloud/data:/data
-#    depends_on:
-#      - mariadb
-#      - swag
-#    ports:
-#      - 444:444
-#    restart: unless-stopped
-#  mariadb:
-#    image: ghcr.io/linuxserver/mariadb
-#    container_name: mariadb
-#    environment:
-#      - PUID=1000
-#      - PGID=1000
-#      - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
-#      - TZ=Europe/Londonf
-#      - MYSQL_DATABASE=nextcloud
-#      - MYSQL_USER=camuser
-#      - MYSQL_PASSWORD=camscloudissosecure
-#    volumes:
-#      - /opt/appdata/mariadb:/config
-#    restart: unless-stopped
-#https://github.com/qdm12/gluetun/wiki/Mullvad
-#https://www.youtube.com/watch?v=mH7J_2JKNK0
   gluetun:
+# https://github.com/qdm12/gluetun/wiki/Mullvad
+# https://www.youtube.com/watch?v=mH7J_2JKNK0
     image: qmcgaw/gluetun
     cap_add:
       - NET_ADMIN
@@ -167,9 +110,9 @@ services:
       - 6881:6881
       - 6881:6881/udp
       #specify port 8000 for testing
-      - 8000:8000
+      # commenting out due to port conflict with paperless 20220510
+      # - 8000:8000
     volumes:
-#      - /yourpath:/gluetun
       - /opt/appdata/gluetun:/config
     environment:
       # See https://github.com/qdm12/gluetun/wiki
@@ -230,7 +173,6 @@ services:
       - /opt/appdata/radarr:/config
       - /mnt/storage/movies:/movies
       - /mnt/disk1/downloads:/downloads
-#      - ${DOWNLOADS_DIR}:/data
     ports:
       - 7878:7878
     environment:
@@ -247,7 +189,6 @@ services:
       - /opt/appdata/sonarr:/config
       - /mnt/storage/tv:/tv
       - /mnt/disk1/downloads:/downloads
-#      - ${DOWNLOADS_DIR}:/data
     ports:
       - 8989:8989
     restart: always
@@ -276,3 +217,60 @@ services:
       - 443:443
       - 81:80
     restart: unless-stopped
+  # doublecommander:
+  #   image: lscr.io/linuxserver/doublecommander
+  #   container_name: doublecommander
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Europe/London
+  #   volumes:
+  #     - /appdata/doublecommander:/config
+  #     - /:/data
+  #   ports:
+  #     - 3000:3000
+  #   restart: unless-stopped
+  # lazydocker:
+  #   build:
+  #     context: https://github.com/jesseduffield/lazydocker.git
+  #     args:
+  #       BASE_IMAGE_BUILDER: golang
+  #       GOARCH: amd64
+  #       GOARM:
+  #   image: lazyteam/lazydocker
+  #   container_name: lazydocker
+  #   stdin_open: true
+  #   tty: true
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - /opt/appdata/lazydocker/config:/config
+  #  nextcloud:
+  #    image: lscr.io/linuxserver/nextcloud
+  #    container_name: nextcloud
+  #    environment:
+  #      - PUID=1000
+  #      - PGID=1000
+  #      - TZ=Europe/London
+  #    volumes:
+  #      - /opt/appdata/nextcloud/config:/config
+  #      - /mnt/storage/nextcloud/data:/data
+  #    depends_on:
+  #      - mariadb
+  #      - swag
+  #    ports:
+  #      - 444:444
+  #    restart: unless-stopped
+  #  mariadb:
+  #    image: ghcr.io/linuxserver/mariadb
+  #    container_name: mariadb
+  #    environment:
+  #      - PUID=1000
+  #      - PGID=1000
+  #      - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
+  #      - TZ=Europe/Londonf
+  #      - MYSQL_DATABASE=nextcloud
+  #      - MYSQL_USER=camuser
+  #      - MYSQL_PASSWORD=camscloudissosecure
+  #    volumes:
+  #      - /opt/appdata/mariadb:/config
+  #    restart: unless-stopped
