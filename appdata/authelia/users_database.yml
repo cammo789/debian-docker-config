@@ -1,0 +1,10 @@
+users:
+  cam:
+    displayname: "Cam"
+    # actual pw: "a_very_important_secretMaoMaoMaoMaoMaoMao"
+    # docker run authelia/authelia:latest authelia hash-password 'yourpassword'
+    password: "$argon2id$v=19$m=65536,t=1,p=8$NFUzSjFjS0FudHY2S1dkdQ$nj2e4buxcGcoD43OmONH/u4lwB3cTZFimZiSLGgDp60"
+    email: cammo789@gmail.com
+    groups: 
+      - admins
+      - dev

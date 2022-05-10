@@ -1,0 +1,77 @@
+# theme: dark
+host: 0.0.0.0
+port: 9091
+server:
+  read_buffer_size: 4096
+  write_buffer_size: 4096
+  path: "authelia"
+log_level: debug
+# https://www.allkeysgenerator.com/
+jwt_secret: 2s5v8y/B?E(G+KbP
+default_redirection_url: https://cconable.com
+
+duo_api:
+  hostname: api-d8d397ec.duosecurity.com
+  integration_key: DIDK2MFGDJTBMYOTKHZH
+  secret_key: iMEfvN7O6CTM2rDwcFhESRhVPAt5ehG14wCsK9Oi
+authentication_backend:
+  disable_reset_password: false
+  file:
+    path: /config/users_database.yml
+    password:
+      algorithm: argon2id
+      iterations: 1
+      key_length: 32
+      salt_length: 16
+      memory: 512
+      parallelism: 8
+
+access_control:
+  default_policy: deny
+  # default_policy: deny
+  rules:
+    - domain: "*.cconable.com"
+      policy: one_factor
+
+session:
+  name: authelia_session
+  secret: MbQeThWmZq4t7w!z
+  expiration: 1h
+  inactivity: 5m
+  remember_me_duration: 2M
+  domain: cconable.com
+
+regulation:
+  max_retries: 3
+  find_time: 2m
+  ban_time: 5m
+
+storage:
+  local:
+    path: /config/db.sqlite3
+    
+notifier:
+  disable_startup_check: false
+  smtp:
+    username: cammo789@gmail.com
+    # Password can also be set using a secret: https://www.authelia.com/docs/configuration/secrets.html
+    # For more info: https://www.authelia.com/docs/configuration/notifier/smtp.html
+    password: lnldyhyrolvubogy
+    sender: admin@example.com
+    host: smtp.gmail.com
+    port: 587
+  # smtp:
+  #   username: cammo789@gmail.com
+  #   password: qwerTYUI1qaz@WSX
+  #   # password: a_very_important_secretMaoMaoMaoMaoMaoMao
+  #   host: smtp.gmail.com
+  #   port: 587
+  #   sender: cammo789@gmail.com
+  #   subject: "[Authelia] {title}"
+  #   startup_check_address: test@authelia.com
+  #   trusted_cert: ""
+  #   disable_require_tls: false
+  #   disable_verify_cert: false # commented out 5/6/22
+  #   tls:
+  #     skip_verify: false
+  #     minimum_version: TLS1.2
