@@ -1,12 +1,26 @@
 ---
 version: '3.2'
 services:
+  ombi:
+    image: lscr.io/linuxserver/ombi:latest
+    container_name: ombi
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - BASE_URL=/ombi #optional
+    volumes:
+      - /opt/appdata/ombi:/config
+    ports:
+      - 3579:3579
+    restart: unless-stopped
+# paperless broker and db
   broker:
       image: redis:6.0
       restart: unless-stopped
       volumes:
         - /mnt/storage/paperless/redisdata:/redisdata
-  db:
+  db_paperless:
     image: postgres:13
     restart: unless-stopped
     volumes:
@@ -19,7 +33,7 @@ services:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     restart: unless-stopped
     depends_on:
-      - db
+      - db_paperless
       - broker
     ports:
     # port clash with gluetun
@@ -37,7 +51,7 @@ services:
     env_file: /mnt/storage/paperless/docker-compose-paperless.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379
-      PAPERLESS_DBHOST: db
+      PAPERLESS_DBHOST: db_paperless
   authelia:
     image: authelia/authelia:4.21.0
     container_name: authelia
@@ -62,7 +76,7 @@ services:
       - /mnt/storage/metube/downloads:/downloads
   calibre-web:
     image: lscr.io/linuxserver/calibre-web
-    container_name: calibre-web
+    container_name: calibre
     environment:
       - PUID=1000
       - PGID=1000
@@ -87,13 +101,14 @@ services:
       - TZ=Europe/London
     volumes:
       - /opt/appdata/syncthing/config:/config
-      - /mnt/storage/nextcloud:/nextcloud
-      - /mnt/storage/misc/workout:/workout
+      - /mnt/storage:/data
+      # - /mnt/storage/nextcloud:/nextcloud
+      # - /mnt/storage/misc/workout:/workout
     ports:
-      - 8384:8384
-      - 22000:22000/tcp
-      - 22000:22000/udp
-      - 21027:21027/udp
+      - 8384:8384 # Web UI
+      - 22000:22000/tcp # TCP file transfers
+      - 22000:22000/udp # QUIC file transfers
+      - 21027:21027/udp # Receive local discovery broadcasts
     restart: unless-stopped
   gluetun:
 # https://github.com/qdm12/gluetun/wiki/Mullvad
@@ -199,7 +214,8 @@ services:
       - PGID=1000
       - TZ=Europe/London
   swag:
-    image: ghcr.io/linuxserver/swag
+  # https://github.com/linuxserver/docker-swag/issues/225 - connection refused error - delete config/etc/letsencrypt inside container then restart
+    image: ghcr.io/linuxserver/swag:latest
     container_name: swag
     cap_add:
       - NET_ADMIN
@@ -208,14 +224,14 @@ services:
       - PGID=1000 
       - TZ=Europe/London 
       - URL=cconable.com 
-      - SUBDOMAINS=www,radarr,sonarr,metube,paperless
+      - SUBDOMAINS=www,metube,syncthing,ombi,paperless,calibre
       - VALIDATION=http 
       # - DOCKER_MODS=linuxserver/mods:swag-dashboard
     volumes:
       - /home/aptalca/appdata/swag:/config
     ports:
       - 443:443
-      - 81:80
+      - 80:80 # DO NOT CHANGE - needs to be 80:80
     restart: unless-stopped
   # doublecommander:
   #   image: lscr.io/linuxserver/doublecommander
