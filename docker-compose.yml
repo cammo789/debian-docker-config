@@ -1,6 +1,37 @@
 ---
 version: '3.2'
 services:
+  doublecommander:
+    image: lscr.io/linuxserver/doublecommander
+    container_name: doublecommander
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /mnt/storage/doublecommander:/config
+      - /:/data
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+  db_recipes:
+    restart: always
+    image: postgres:11-alpine
+    volumes:
+      - /mnt/storage/recipes/postgresql:/var/lib/postgresql/data
+    env_file:
+      - /mnt/storage/recipes/.env
+  recipes:
+    restart: always
+    image: vabene1111/recipes
+    env_file:
+    - /mnt/storage/recipes/.env
+    volumes:
+      - /mnt/storage/recipes/static:/opt/recipes/staticfiles
+      # - nginx_config:/opt/recipes/nginx/conf.d
+      - /mnt/storage/recipes/media:/opt/recipes/mediafiles
+    depends_on:
+      - db_recipes
   ombi:
     image: lscr.io/linuxserver/ombi:latest
     container_name: ombi
@@ -224,28 +255,17 @@ services:
       - PGID=1000 
       - TZ=Europe/London 
       - URL=cconable.com 
-      - SUBDOMAINS=www,metube,syncthing,ombi,paperless,calibre
+      - SUBDOMAINS=www,metube,syncthing,ombi,paperless,calibre,recipes,doublecommander
       - VALIDATION=http 
       # - DOCKER_MODS=linuxserver/mods:swag-dashboard
     volumes:
       - /home/aptalca/appdata/swag:/config
+      # For recipes (tandoor)
+      - /mnt/storage/recipes/media:/media
     ports:
       - 443:443
       - 80:80 # DO NOT CHANGE - needs to be 80:80
     restart: unless-stopped
-  # doublecommander:
-  #   image: lscr.io/linuxserver/doublecommander
-  #   container_name: doublecommander
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/London
-  #   volumes:
-  #     - /appdata/doublecommander:/config
-  #     - /:/data
-  #   ports:
-  #     - 3000:3000
-  #   restart: unless-stopped
   # lazydocker:
   #   build:
   #     context: https://github.com/jesseduffield/lazydocker.git
@@ -260,33 +280,33 @@ services:
   #   volumes:
   #     - /var/run/docker.sock:/var/run/docker.sock
   #     - /opt/appdata/lazydocker/config:/config
-  #  nextcloud:
-  #    image: lscr.io/linuxserver/nextcloud
-  #    container_name: nextcloud
-  #    environment:
-  #      - PUID=1000
-  #      - PGID=1000
-  #      - TZ=Europe/London
-  #    volumes:
-  #      - /opt/appdata/nextcloud/config:/config
-  #      - /mnt/storage/nextcloud/data:/data
-  #    depends_on:
-  #      - mariadb
-  #      - swag
-  #    ports:
-  #      - 444:444
-  #    restart: unless-stopped
-  #  mariadb:
-  #    image: ghcr.io/linuxserver/mariadb
-  #    container_name: mariadb
-  #    environment:
-  #      - PUID=1000
-  #      - PGID=1000
-  #      - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
-  #      - TZ=Europe/Londonf
-  #      - MYSQL_DATABASE=nextcloud
-  #      - MYSQL_USER=camuser
-  #      - MYSQL_PASSWORD=camscloudissosecure
-  #    volumes:
-  #      - /opt/appdata/mariadb:/config
-  #    restart: unless-stopped
+  # nextcloud:
+  #   image: lscr.io/linuxserver/nextcloud
+  #   container_name: nextcloud
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Europe/London
+  #   volumes:
+  #     - /opt/appdata/nextcloud/config:/config
+  #     - /mnt/storage/nextcloud/data:/data
+  #   depends_on:
+  #     - mariadb
+  #     - swag
+  #   ports:
+  #     - 444:444
+  #   restart: unless-stopped
+  # mariadb:
+  #   image: ghcr.io/linuxserver/mariadb
+  #   container_name: mariadb
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
+  #     - TZ=Europe/Londonf
+  #     - MYSQL_DATABASE=nextcloud
+  #     - MYSQL_USER=camuser
+  #     - MYSQL_PASSWORD=camscloudissosecure
+  #   volumes:
+  #     - /opt/appdata/mariadb:/config
+  #   restart: unless-stopped
