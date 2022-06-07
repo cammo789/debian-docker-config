@@ -1,6 +1,45 @@
 ---
 version: '3.2'
 services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud
+    container_name: nextcloud
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /opt/appdata/nextcloud/config:/config
+      - /mnt/storage/nextcloud/data:/data
+    depends_on:
+      - mariadb
+    ports:
+      - 444:443
+    restart: unless-stopped
+  mariadb:
+    image: ghcr.io/linuxserver/mariadb
+    container_name: mariadb
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
+      - TZ=Europe/London
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=camuser
+      - MYSQL_PASSWORD=camscloudissosecure
+    volumes:
+      - /opt/appdata/mariadb:/config
+    restart: unless-stopped
+  heimdall:
+    image: lscr.io/linuxserver/heimdall
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /opt/appdata/heimdall:/config
+    restart: unless-stopped
   doublecommander:
     image: lscr.io/linuxserver/doublecommander
     container_name: doublecommander
@@ -45,6 +84,22 @@ services:
     ports:
       - 3579:3579
     restart: unless-stopped
+  # paperless:
+  #   image: lscr.io/linuxserver/paperless-ngx:latest
+  #   container_name: paperless
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=America/New_York
+  #     # - PAPERLESS_URL=https://paperless.cconable.com
+  #     # OPTIONAL
+  #     # - REDIS_URL= # optional
+  #   volumes:
+  #     - /mnt/storage/paperless/config:/config
+  #     - /mnt/storage/paperless/data:/data
+  #   ports:
+  #     - 8000:8000
+    # env_file: /mnt/storage/paperless/docker-compose-paperless.env
 # paperless broker and db
   broker:
       image: redis:6.0
@@ -61,6 +116,7 @@ services:
       POSTGRES_USER: paperless
       POSTGRES_PASSWORD: paperless
   paperless:
+    container_name: paperless
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     restart: unless-stopped
     depends_on:
@@ -68,7 +124,7 @@ services:
       - broker
     ports:
     # port clash with gluetun
-      - 8010:8000
+      - 8011:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010"]
       interval: 30s
@@ -79,6 +135,7 @@ services:
       - /mnt/storage/paperless/media:/usr/src/paperless/media
       - /mnt/storage/paperless/export:/usr/src/paperless/export
       - /mnt/storage/paperless/consume:/usr/src/paperless/consume
+      # - /mnt/storage/nextcloud/data/camcl0ud/files:/usr/src/paperless/consume
     env_file: /mnt/storage/paperless/docker-compose-paperless.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379
@@ -255,9 +312,9 @@ services:
       - PGID=1000 
       - TZ=Europe/London 
       - URL=cconable.com 
-      - SUBDOMAINS=www,metube,syncthing,ombi,paperless,calibre,recipes,doublecommander
+      - SUBDOMAINS=www,metube,syncthing,ombi,paperless,calibre,recipes,doublecommander,heimdall,nextcloud
       - VALIDATION=http 
-      # - DOCKER_MODS=linuxserver/mods:swag-dashboard
+      - DOCKER_MODS=linuxserver/mods:swag-dashboard
     volumes:
       - /home/aptalca/appdata/swag:/config
       # For recipes (tandoor)
@@ -280,33 +337,3 @@ services:
   #   volumes:
   #     - /var/run/docker.sock:/var/run/docker.sock
   #     - /opt/appdata/lazydocker/config:/config
-  # nextcloud:
-  #   image: lscr.io/linuxserver/nextcloud
-  #   container_name: nextcloud
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/London
-  #   volumes:
-  #     - /opt/appdata/nextcloud/config:/config
-  #     - /mnt/storage/nextcloud/data:/data
-  #   depends_on:
-  #     - mariadb
-  #     - swag
-  #   ports:
-  #     - 444:444
-  #   restart: unless-stopped
-  # mariadb:
-  #   image: ghcr.io/linuxserver/mariadb
-  #   container_name: mariadb
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
-  #     - TZ=Europe/Londonf
-  #     - MYSQL_DATABASE=nextcloud
-  #     - MYSQL_USER=camuser
-  #     - MYSQL_PASSWORD=camscloudissosecure
-  #   volumes:
-  #     - /opt/appdata/mariadb:/config
-  #   restart: unless-stopped
