@@ -1,11 +1,16 @@
----
+networks:
+  default:
+  traefik: # This is your external traefik network
+    external: true
+# volumes:
+#   nginx_config:
+#   staticfiles:
+
 version: '3.2'
 secrets:
   cloudflare-api-key: #Cloudflare config https://doc.traefik.io/traefik/user-guides/docker-compose/acme-dns/#use-secrets
     file: "/mnt/storage/traefik/cf_api_key.secret"
-# networks:
-#   web:
-#     external: true
+
 #   backend:
 #     external: false
     
@@ -59,6 +64,7 @@ services:
       - "/mnt/storage/letsencrypt:/letsencrypt" # <== Volume for certs 
       - "/var/run/docker.sock:/var/run/docker.sock:ro" # <== Volume for docker admin
       - "/mnt/storage/traefik/dynamic.yaml:/dynamic.yaml" # <== Volume for dynamic conf file, **ref: line 27
+      # - "/mnt/storage/recipes/media:/media" # traefik needs to access recipes for media upload
     # networks:
       # - web # <== Placing traefik on the network named web, to access containers on this network
     # extra_hosts:
@@ -81,7 +87,7 @@ services:
   #     - traefik.enable=true
   #     - traefik.http.routers.nginx.rule=Host(`test.cconable.com`)
   #     - traefik.http.routers.nginx.entrypoints=websecure
-  #     - traefik.http.routers.nginx.tls.certresolver=cloudflare
+  #     - traefik.http.routers.nginx.tls.certresolver=cloudflare-staging
   # homeassistant:
   #   image: "ghcr.io/home-assistant/home-assistant:stable"
   #   container_name: homeassistant
@@ -176,24 +182,54 @@ services:
 #     ports:
 #       - 3000:3000
 #     restart: unless-stopped
-#   db_recipes:
-#     restart: always
-#     image: postgres:11-alpine
-#     volumes:
-#       - /mnt/storage/recipes/postgresql:/var/lib/postgresql/data
-#     env_file:
-#       - /mnt/storage/recipes/.env
-#   recipes:
-#     restart: always
-#     image: vabene1111/recipes
-#     env_file:
-#     - /mnt/storage/recipes/.env
-#     volumes:
-#       - /mnt/storage/recipes/static:/opt/recipes/staticfiles
-#       # - nginx_config:/opt/recipes/nginx/conf.d
-#       - /mnt/storage/recipes/media:/opt/recipes/mediafiles
-#     depends_on:
-#       - db_recipes
+
+# https://github.com/TandoorRecipes/recipes/issues/452
+  db_recipes:
+    container_name: db_recipes
+    restart: always
+    image: postgres:11-alpine
+    volumes:
+      - /mnt/storage/recipes/postgresql:/var/lib/postgresql/data
+    env_file:
+      - /mnt/storage/recipes/.env
+    networks:
+      - default
+
+  recipes:
+    container_name: recipes
+    restart: always
+    image: vabene1111/recipes
+    env_file:
+    - /mnt/storage/recipes/.env
+    volumes:
+      - /mnt/storage/recipes/static:/opt/recipes/staticfiles
+      - /mnt/storage/recipes/nginx_config:/opt/recipes/nginx/conf.d
+      - /mnt/storage/recipes/media:/opt/recipes/mediafiles
+    depends_on:
+      - db_recipes
+    networks:
+      - default
+
+  nginx_recipes:
+    image: nginx:mainline-alpine
+    restart: always
+    env_file:
+      - /mnt/storage/recipes/.env
+    volumes:
+      - /mnt/storage/recipes/nginx_config:/etc/nginx/conf.d:ro
+      - /mnt/storage/recipes/static:/static:ro
+      - /mnt/storage/recipes/media:/media:ro
+    labels: 
+      - traefik.enable=true
+      - traefik.http.routers.recipes.rule=Host(`recipes.cconable.com`)
+      - traefik.http.routers.recipes.entrypoints=websecure
+      - traefik.http.routers.recipes.tls.certresolver=cloudflare-staging
+    depends_on:
+      - recipes
+    networks:
+      - default
+      - traefik
+      
 #   ombi:
 #     image: lscr.io/linuxserver/ombi:latest
 #     container_name: ombi
@@ -291,11 +327,11 @@ services:
     #   - "8081:8081"
     volumes:
       - /mnt/storage/metube/downloads:/downloads
-    # labels:
-    #   - traefik.enable=true
-    #   - traefik.http.routers.metube.rule=Host(`metube.cconable.com`)
-    #   - traefik.http.routers.metube.entrypoints=websecure
-    #   - traefik.http.routers.metube.tls.certresolver=cloudflare-staging
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.metube.rule=Host(`metube.cconable.com`)
+      - traefik.http.routers.metube.entrypoints=websecure
+      - traefik.http.routers.metube.tls.certresolver=cloudflare-staging
     # depends_on:
       # - traefik
   calibre-web:
@@ -332,7 +368,7 @@ services:
       # - /mnt/storage/nextcloud:/nextcloud
       # - /mnt/storage/misc/workout:/workout
     ports:
-      - 8384:8384 # Web UI
+      # - 8384:8384 # Web UI
       - 22000:22000/tcp # TCP file transfers
       - 22000:22000/udp # QUIC file transfers
       - 21027:21027/udp # Receive local discovery broadcasts
