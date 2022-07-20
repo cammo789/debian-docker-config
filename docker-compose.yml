@@ -1,265 +1,144 @@
-networks:
-  default:
-  traefik: # This is your external traefik network
-    external: true
-# volumes:
-#   nginx_config:
-#   staticfiles:
-
+---
 version: '3.2'
-secrets:
-  cloudflare-api-key: #Cloudflare config https://doc.traefik.io/traefik/user-guides/docker-compose/acme-dns/#use-secrets
-    file: "/mnt/storage/traefik/cf_api_key.secret"
-
-#   backend:
-#     external: false
-    
-# volumes:
-#   wordpress:
-#     external: true
-#   db:
-#     external: true
 services:
-  traefik:
-  # https://doc.traefik.io/traefik/
-    image: traefik:v2.7
-    restart: always
-    container_name: traefik
-    networks:
-      default:
+  openaudible:
+    container_name: openaudible
+    image: lanjelin/openaudible:latest
     ports:
-      - "80:80" # <== http
-      - "8080:8080" # <== :8080 is where the dashboard runs on
-      - "443:443" # <== https
+      - "3001:3000"
     environment:
-      - "CLOUDFLARE_EMAIL=cammo789@gmail.com"
-      - "CLOUDFLARE_API_KEY=/run/secrets/cloudflare-api-key"
-    command:
-      - "--log.level=debug"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
-      - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
-      - "--certificatesresolvers.cloudflare.acme.dnschallenge.delayBeforeCheck=0"
-      - "--certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53"
-      - "--certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.0.0.1:53"
-      # - "--certificatesresolvers.cloudflare.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.cloudflare.acme.email=cammo789@gmail.com"
-      - "--certificatesresolvers.cloudflare.acme.KeyType=EC256"
-      - "--certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json"
-      # testing
-      - "--certificatesresolvers.cloudflare-staging.acme.dnschallenge=true"
-      - "--certificatesresolvers.cloudflare-staging.acme.dnschallenge.provider=cloudflare"
-      - "--certificatesresolvers.cloudflare-staging.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53"
-      - "--certificatesresolvers.cloudflare-staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.cloudflare-staging.acme.email=cammo789@gmail.com"
-      - "--certificatesresolvers.cloudflare-staging.acme.KeyType=EC256"
-      - "--certificatesresolvers.cloudflare-staging.acme.storage=/letsencrypt/acme.json"
-    secrets:
-      - "cloudflare-api-key"
+      - PUID=1000
+      - PGID=1000
     volumes:
-      - "/mnt/storage/letsencrypt:/letsencrypt" # <== Volume for certs 
-      - "/var/run/docker.sock:/var/run/docker.sock:ro" # <== Volume for docker admin
-      - "/mnt/storage/traefik/dynamic.yaml:/dynamic.yaml" # <== Volume for dynamic conf file, **ref: line 27
-      # - "/mnt/storage/recipes/media:/media" # traefik needs to access recipes for media upload
-    # networks:
-      # - web # <== Placing traefik on the network named web, to access containers on this network
-    # extra_hosts:
-      # - host.docker.internal:172.17.0.1 # per KTZ, unsure of the utility
-    labels:
-    #### Labels define the behavior and rules of the traefik proxy for this container ####
-      - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
-      - "traefik.http.routers.api.rule=Host(`traefik.cconable.com`)" # <== Setting the domain for the dashboard
-      - "traefik.http.routers.api.service=api@internal" # <== Enabling the api to be a service to access
-  # nginx:
-  #   image: linuxserver/nginx
-  #   container_name: my-web-nginx
-  #   # depends_on:
-  #     # - traefik
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #   restart: unless-stopped
-  #   labels:
-  #     - traefik.enable=true
-  #     - traefik.http.routers.nginx.rule=Host(`test.cconable.com`)
-  #     - traefik.http.routers.nginx.entrypoints=websecure
-  #     - traefik.http.routers.nginx.tls.certresolver=cloudflare-staging
-  # homeassistant:
-  #   image: "ghcr.io/home-assistant/home-assistant:stable"
-  #   container_name: homeassistant
-  #   network_mode: host
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/London
-  #   volumes:
-  #     - /mnt/storage/homeassistant:/config
-  #     - /etc/localtime:/etc/localtime:ro
-  #   privileged: true
-  #   restart: unless-stopped
-  #   labels:
-  #     - traefik.enable=true
-  #     - traefik.http.routers.homeassistant.rule=Host(`ha.cconable.com`)
-  #     - traefik.http.routers.homeassistant.entrypoints=websecure
-  #     - traefik.http.routers.homeassistant.tls.certresolver=cloudflare-staging
-#   ################################################
-#   ####         Begin HA Integrations         #####
-#   ################################################
-#   wyze-bridge:
-#     container_name: wyze-bridge
-#     restart: unless-stopped
-#     image: mrlt8/wyze-bridge:latest
-#     ports:
-#       - 1935:1935 # RTMP
-#       - 8554:8554 # RTSP
-#       - 8889:8888 # HLS
-#     environment:
-#       - WYZE_EMAIL=cammo789@gmail.com # Replace with wyze email 
-#       - WYZE_PASSWORD=leopard-harness-grumpilY$$8 # Replace with wyze password
-#     volumes:
-#     - /mnt/storage/wyze-bridge/tokens:/tokens/
-#   ################################################
-#   ####           End HA Integrations         #####
-#   ################################################
-  # nextcloud:
-  #   image: lscr.io/linuxserver/nextcloud
-  #   container_name: nextcloud
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/London
-  #   volumes:
-  #     - /opt/appdata/nextcloud/config:/config
-  #     - /mnt/storage/nextcloud/data:/data
-  #   depends_on:
-  #     - mariadb
-  #   # ports:
-  #     # - 444:443
-  #   restart: unless-stopped
-  #   labels:
-  #     - traefik.enable=true
-  #     - traefik.http.routers.nextcloud.rule=Host(`nextcloud.cconable.com`)
-  #     - traefik.http.routers.nextcloud.entrypoints=websecure
-  #     - traefik.http.routers.nextcloud.tls.certresolver=cloudflare-staging
-  # mariadb:
-  #   image: ghcr.io/linuxserver/mariadb
-  #   container_name: mariadb
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
-  #     - TZ=Europe/London
-  #     - MYSQL_DATABASE=nextcloud
-  #     - MYSQL_USER=camuser
-  #     - MYSQL_PASSWORD=camscloudissosecure
-  #   volumes:
-  #     - /opt/appdata/mariadb:/config
-  #   restart: unless-stopped
-#   heimdall:
-#     image: lscr.io/linuxserver/heimdall
-#     container_name: heimdall
-#     environment:
-#       - PUID=1000
-#       - PGID=1000
-#       - TZ=Europe/London
-#     volumes:
-#       - /opt/appdata/heimdall:/config
-#     restart: unless-stopped
-#   doublecommander:
-#     image: lscr.io/linuxserver/doublecommander
-#     container_name: doublecommander
-#     environment:
-#       - PUID=1000
-#       - PGID=1000
-#       - TZ=Europe/London
-#     volumes:
-#       - /mnt/storage/doublecommander:/config
-#       - /:/data
-#     ports:
-#       - 3000:3000
-#     restart: unless-stopped
-
-# https://github.com/TandoorRecipes/recipes/issues/452
+      - /mnt/storage/openaudible/config:/config
+  readarr:
+    image: lscr.io/linuxserver/readarr:develop
+    container_name: readarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /mnt/storage/readarr/config:/config
+      - /mnt/storage/readarr/books:/books #optional
+      - /mnt/storage/readarr/downloads:/downloads #optional
+    ports:
+      - 8787:8787
+    restart: unless-stopped
+  audiobookshelf:
+    container_name: audiobookshelf
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    environment:
+      - AUDIOBOOKSHELF_UID=1000
+      - AUDIOBOOKSHELF_GID=1000
+    ports:
+      - 13378:80
+    volumes:
+      - /mnt/storage/audiobookshelf/audiobooks:/audiobooks
+      - /mnt/storage/audiobookshelf/podcasts:/podcasts
+      - /mnt/storage/audiobookshelf/config:/config
+      - /mnt/storage/audiobookshelf/metadata:/metadata
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud
+    container_name: nextcloud
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /opt/appdata/nextcloud/config:/config
+      - /mnt/storage/nextcloud/data:/data
+    depends_on:
+      - mariadb
+    ports:
+      - 444:443
+    restart: unless-stopped
+  mariadb:
+    image: ghcr.io/linuxserver/mariadb
+    container_name: mariadb
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ROOT_PASSWORD=camscloudissosecureyoudontevenknow
+      - TZ=Europe/London
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=camuser
+      - MYSQL_PASSWORD=camscloudissosecure
+    volumes:
+      - /opt/appdata/mariadb:/config
+    restart: unless-stopped
+  heimdall:
+    image: lscr.io/linuxserver/heimdall
+    container_name: heimdall
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /opt/appdata/heimdall:/config
+    restart: unless-stopped
+  doublecommander:
+    image: lscr.io/linuxserver/doublecommander
+    container_name: doublecommander
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - /mnt/storage/doublecommander:/config
+      - /:/data
+    ports:
+      - 3000:3000
+    restart: unless-stopped
   db_recipes:
-    container_name: db_recipes
     restart: always
     image: postgres:11-alpine
     volumes:
       - /mnt/storage/recipes/postgresql:/var/lib/postgresql/data
     env_file:
       - /mnt/storage/recipes/.env
-    networks:
-      - default
-
   recipes:
-    container_name: recipes
     restart: always
     image: vabene1111/recipes
     env_file:
     - /mnt/storage/recipes/.env
     volumes:
       - /mnt/storage/recipes/static:/opt/recipes/staticfiles
-      - /mnt/storage/recipes/nginx_config:/opt/recipes/nginx/conf.d
+      # - nginx_config:/opt/recipes/nginx/conf.d
       - /mnt/storage/recipes/media:/opt/recipes/mediafiles
     depends_on:
       - db_recipes
-    networks:
-      - default
-
-  nginx_recipes:
-    image: nginx:mainline-alpine
-    restart: always
-    env_file:
-      - /mnt/storage/recipes/.env
+  ombi:
+    image: lscr.io/linuxserver/ombi:latest
+    container_name: ombi
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - BASE_URL=/ombi #optional
     volumes:
-      - /mnt/storage/recipes/nginx_config:/etc/nginx/conf.d:ro
-      - /mnt/storage/recipes/static:/static:ro
-      - /mnt/storage/recipes/media:/media:ro
-    labels: 
-      - traefik.enable=true
-      - traefik.http.routers.recipes.rule=Host(`recipes.cconable.com`)
-      - traefik.http.routers.recipes.entrypoints=websecure
-      - traefik.http.routers.recipes.tls.certresolver=cloudflare-staging
-    depends_on:
-      - recipes
-    networks:
-      - default
-      - traefik
-      
-#   ombi:
-#     image: lscr.io/linuxserver/ombi:latest
-#     container_name: ombi
-#     environment:
-#       - PUID=1000
-#       - PGID=1000
-#       - TZ=Europe/London
-#       - BASE_URL=/ombi #optional
-#     volumes:
-#       - /opt/appdata/ombi:/config
-#     ports:
-#       - 3579:3579
-#     restart: unless-stopped
-#   # paperless:
-#   #   image: lscr.io/linuxserver/paperless-ngx:latest
-#   #   container_name: paperless
-#   #   environment:
-#   #     - PUID=1000
-#   #     - PGID=1000
-#   #     - TZ=America/New_York
-#   #     - PAPERLESS_URL=https://paperless.cconable.com
-#   #     # OPTIONAL
-#   #     # - REDIS_URL= # optional
-#   #   volumes:
-#   #     - /mnt/storage/paperless/config:/config
-#   #     - /mnt/storage/paperless/data:/data
-#   #   ports:
-#   #     - 8000:8000
-#     # env_file: /mnt/storage/paperless/docker-compose-paperless.env
-# # paperless broker and db
+      - /opt/appdata/ombi:/config
+    ports:
+      - 3579:3579
+    restart: unless-stopped
+  # paperless:
+  #   image: lscr.io/linuxserver/paperless-ngx:latest
+  #   container_name: paperless
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=America/New_York
+  #     # - PAPERLESS_URL=https://paperless.cconable.com
+  #     # OPTIONAL
+  #     # - REDIS_URL= # optional
+  #   volumes:
+  #     - /mnt/storage/paperless/config:/config
+  #     - /mnt/storage/paperless/data:/data
+  #   ports:
+  #     - 8000:8000
+    # env_file: /mnt/storage/paperless/docker-compose-paperless.env
+# paperless broker and db
   broker:
       image: redis:6.0
       restart: unless-stopped
@@ -281,9 +160,9 @@ services:
     depends_on:
       - db_paperless
       - broker
-    # ports:
+    ports:
     # port clash with gluetun
-      # - 8000:8000
+      - 8011:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010"]
       interval: 30s
@@ -293,29 +172,23 @@ services:
       - /mnt/storage/paperless/data:/usr/src/paperless/data
       - /mnt/storage/paperless/media:/usr/src/paperless/media
       - /mnt/storage/paperless/export:/usr/src/paperless/export
-      # - /mnt/storage/paperless/consume:/usr/src/paperless/consume
-      - /mnt/storage/nextcloud/data/camcl0ud/files/paperless-consume:/usr/src/paperless/consume
+      - /mnt/storage/paperless/consume:/usr/src/paperless/consume
+      # - /mnt/storage/nextcloud/data/camcl0ud/files:/usr/src/paperless/consume
     env_file: /mnt/storage/paperless/docker-compose-paperless.env
     environment:
       PAPERLESS_REDIS: redis://broker:6379
       PAPERLESS_DBHOST: db_paperless
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.paperless.rule=Host(`paperless.cconable.com`)
-      - traefik.http.routers.paperless.entrypoints=websecure
-      - traefik.http.routers.paperless.tls.certresolver=cloudflare-staging
-  # authelia:
-  #   image: authelia/authelia:4.21.0
-  #   container_name: authelia
-  #   environment:
-  #     - TZ=America/New_York
-  #     - PUID=1000
-  #     - PGID=1000
-  #   volumes:
-  #     - /opt/appdata/authelia:/config
-  #   restart: unless-stopped
+  authelia:
+    image: authelia/authelia:4.21.0
+    container_name: authelia
+    environment:
+      - TZ=America/New_York
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - /opt/appdata/authelia:/config
+    restart: unless-stopped
   metube:
-    # network_mode: host
     image: alexta69/metube
     container_name: metube
     restart: unless-stopped
@@ -323,17 +196,10 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-    # ports:
-    #   - "8081:8081"
+    ports:
+      - "8081:8081"
     volumes:
       - /mnt/storage/metube/downloads:/downloads
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.metube.rule=Host(`metube.cconable.com`)
-      - traefik.http.routers.metube.entrypoints=websecure
-      - traefik.http.routers.metube.tls.certresolver=cloudflare-staging
-    # depends_on:
-      # - traefik
   calibre-web:
     image: lscr.io/linuxserver/calibre-web
     container_name: calibre
@@ -348,11 +214,8 @@ services:
     volumes:
       - /opt/appdata/calibre/config:/config
       - /mnt/storage/calibre/data:/data
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.calibre-web.rule=Host(`calibre.cconable.com`)
-      - traefik.http.routers.calibre-web.entrypoints=websecure
-      - traefik.http.routers.calibre-web.tls.certresolver=cloudflare-staging
+    ports:
+      - 8083:8083
     restart: unless-stopped
   syncthing:
     image: lscr.io/linuxserver/syncthing
@@ -368,15 +231,10 @@ services:
       # - /mnt/storage/nextcloud:/nextcloud
       # - /mnt/storage/misc/workout:/workout
     ports:
-      # - 8384:8384 # Web UI
+      - 8384:8384 # Web UI
       - 22000:22000/tcp # TCP file transfers
       - 22000:22000/udp # QUIC file transfers
       - 21027:21027/udp # Receive local discovery broadcasts
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.syncthing.rule=Host(`syncthing.cconable.com`)
-      - traefik.http.routers.syncthing.entrypoints=websecure
-      - traefik.http.routers.syncthing.tls.certresolver=cloudflare-staging
     restart: unless-stopped
   gluetun:
 # https://github.com/qdm12/gluetun/wiki/Mullvad
@@ -394,24 +252,22 @@ services:
       - 6881:6881/udp
       #specify port 8000 for testing
       # commenting out due to port conflict with paperless 20220510
-      - 8001:8000
+      # - 8000:8000
     volumes:
       - /opt/appdata/gluetun:/config
     environment:
-      - OPENVPN_ROOT=yes
       # See https://github.com/qdm12/gluetun/wiki
       - VPNSP=mullvad
       - VPN_TYPE=openvpn
       # OpenVPN:
       - OPENVPN_USER=3428543284587563
       - OPENVPN_PASSWORD=NKHJhMNx9G8qmBa4
-      - FIREWALL_OUTBOUND_SUBNETS=192.168.1.0/24
+      - EXTRA_SUBNETS=192.168.1.0/24
       # Wireguard:
       # - WIREGUARD_PRIVATE_KEY=wOEI9rqqbDwnN8/Bpp22sVz48T71vJ4fYmFWujulwUU=
       # - WIREGUARD_ADDRESS=10.64.222.21/32
       # Timezone for accurate log times
       - TZ=Europe/London
-    restart: always
   deluge:
     image: lscr.io/linuxserver/deluge
     network_mode: "service:gluetun"
@@ -427,12 +283,12 @@ services:
 #      - /mnt/storage/movies:/movies
 #      - /mnt/storage/tv:/tv
       - /opt/appdata/deluge:/config
-    restart: unless-stopped
     #routing through gluetin so these ports are unnecessary
-    # ports:
-    #  - 8112:8112
+#    ports:
+#      - 8112:8112
 #      - 6881:6881
 #      - 6881:6881/udp
+#    restart: unless-stopped
   jackett:
     image: ghcr.io/linuxserver/jackett
     container_name: jackett
@@ -458,17 +314,14 @@ services:
       - /opt/appdata/radarr:/config
       - /mnt/storage/movies:/movies
       - /mnt/disk1/downloads:/downloads
+    ports:
+      - 7878:7878
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
     restart:
       always
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.radarr.rule=Host(`radarr.cconable.com`)
-      - traefik.http.routers.radarr.entrypoints=websecure
-      - traefik.http.routers.radarr.tls.certresolver=cloudflare-staging
   sonarr:
     image: linuxserver/sonarr
     container_name: sonarr
@@ -477,38 +330,39 @@ services:
       - /opt/appdata/sonarr:/config
       - /mnt/storage/tv:/tv
       - /mnt/disk1/downloads:/downloads
+    ports:
+      - 8989:8989
     restart: always
     environment:
+#      - PUID=${PUID}
+#      - PGID=${PGID}
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.sonarr.rule=Host(`sonarr.cconable.com`)
-      - traefik.http.routers.sonarr.entrypoints=websecure
-      - traefik.http.routers.sonarr.tls.certresolver=cloudflare-staging
-  # swag:
-  # # https://github.com/linuxserver/docker-swag/issues/225 - connection refused error - delete config/etc/letsencrypt inside container then restart
-  #   image: ghcr.io/linuxserver/swag:latest
-  #   container_name: swag
-  #   cap_add:
-  #     - NET_ADMIN
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000 
-  #     - TZ=Europe/London 
-  #     - URL=cconable.com 
-  #     - SUBDOMAINS=www,metube,ombi,syncthing,paperless,calibre,recipes,doublecommander,heimdall,nextcloud,homeassistant
-  #     - VALIDATION=http 
-  #     - DOCKER_MODS=linuxserver/mods:swag-dashboard
-  #   volumes:
-  #     - /home/aptalca/appdata/swag:/config
-  #     # For recipes (tandoor)
-  #     - /mnt/storage/recipes/media:/media
-  #   ports:
-  #     - 443:443
-  #     - 80:80 # DO NOT CHANGE - needs to be 80:80
-  #   restart: unless-stopped
+  swag:
+  # https://github.com/linuxserver/docker-swag/issues/225 - connection refused error - delete config/etc/letsencrypt inside container then restart
+    image: ghcr.io/linuxserver/swag:latest
+    container_name: swag
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000 
+      - TZ=Europe/London 
+      - URL=cconable.com 
+      # - SUBDOMAINS=www,metube,syncthing,ombi,paperless,calibre,recipes,doublecommander,heimdall,nextcloud
+      - SUBDOMAINS=wildcard
+      - VALIDATION=dns 
+      - DOCKER_MODS=linuxserver/mods:swag-dashboard
+      - DNSPLUGIN=cloudflare
+    volumes:
+      - /home/aptalca/appdata/swag:/config
+      # For recipes (tandoor)
+      - /mnt/storage/recipes/media:/media
+    ports:
+      - 443:443
+      - 80:80 # DO NOT CHANGE - needs to be 80:80
+    restart: unless-stopped
   # lazydocker:
   #   build:
   #     context: https://github.com/jesseduffield/lazydocker.git
